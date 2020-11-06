@@ -1,49 +1,32 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template
 from flask_cors import CORS
-import datetime
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, DateTime
+from flask_login import LoginManager
 
-app = Flask(__name__)
-cors = CORS(app)
+from model import db, User
+import api
+
+app = Flask(__name__, template_folder='frontend_assets', static_folder='frontend_assets', static_url_path='/')
+CORS(app, supports_credentials=True)
+login_manager = LoginManager(app)
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
-db = SQLAlchemy(app)
+app.config['SECRET_KEY'] = '20082003'
+db.init_app(app)
+api.init_app(app)
 
 
-class Tweet(db.Model):
-    id = Column(Integer, primary_key=True)
-    tweet = Column(String(280), nullable=False)
-    date = Column(DateTime, unique=True, nullable=False, default=datetime)
-
-    def __repr__(self):
-        return f"Tweet('{self.tweet}','{self.date}')"
-
-
-def add_tweet(tweet, date):
-    tweet = Tweet(tweet=tweet, date=date)
-    db.session.add(tweet)
-    db.session.commit()
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 @app.route("/")
 def index():
-    tweets = Tweet.query.all()
-
-    def map_tweet(tweet):
-        return {'id': tweet.id, 'tweet': tweet.tweet, 'date': tweet.date}
-
-    tweets = map(map_tweet, tweets)
-    tweets = list(tweets)
-    return jsonify(tweets=tweets)
-
-
-@app.route("/tweet", methods=['POST'])
-def post_tweet():
-    add_tweet(tweet=request.json['tweet'], date=datetime.datetime.now())
-    return 'tweeted'
+    return render_template('index.html')
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')

@@ -2,3 +2,6 @@ flask
 flask_cors
 flask_sqlalchemy
 sqlalchemy
+flask_login
+flask_bcrypt
+sqlalchemy_serializer
